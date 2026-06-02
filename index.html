@@ -353,10 +353,13 @@ footer .fs{font-size:.85rem;letter-spacing:.05em;}
 @media(max-width:820px){
   .guests-inner,.story-inner{grid-template-columns:1fr;gap:2.4rem;}
   .couple-art{max-width:260px;}
-  .polaroids{height:540px;max-width:360px;margin:0 auto;}
-  .polaroid{width:180px;}
-  .polaroid.p2{left:30%;}
-  .polaroid.p3{top:312px;left:0;}
+  /* на мобилке — аккуратная стопка по центру, без пустого места */
+  .polaroids{position:static;height:auto;max-width:none;width:100%;margin:0 auto;
+    display:flex;flex-direction:column;align-items:center;gap:1.6rem;}
+  .polaroid{position:static;top:auto;left:auto;width:min(78vw,300px);}
+  .polaroid.p1{transform:rotate(-3deg);}
+  .polaroid.p2{transform:rotate(2.5deg);}
+  .polaroid.p3{transform:rotate(-2.5deg);}
 }
 @media(max-width:560px){
   nav{gap:1.1rem;}
@@ -367,6 +370,13 @@ footer .fs{font-size:.85rem;letter-spacing:.05em;}
   .countdown{gap:1.3rem;}
   .hero-names{white-space:normal;line-height:1.12;}
   .hero-names .amp{display:block;font-size:1.2rem;margin:.1rem 0;}
+
+  /* на телефоне — один компактный полароид, фото сменяют друг друга */
+  .polaroids{position:relative;display:block;height:auto;width:100%;max-width:none;margin:0 auto;}
+  .polaroid{position:absolute;width:min(64vw,240px);opacity:0;transition:opacity .9s ease;}
+  .polaroid.p1{position:relative;top:auto;left:auto;margin:0 auto;transform:rotate(-2deg);z-index:1;}
+  .polaroid.p2,.polaroid.p3{top:0;left:50%;transform:translateX(-50%) rotate(-2deg);z-index:1;}
+  .polaroid.car-active{opacity:1;}
 }
 </style>
 </head>
@@ -702,15 +712,45 @@ tick();setInterval(tick,1000);
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.14});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-/* RSVP -> Telegram (ник без @) */
-const TG='snegirchk';
+/* мобильная карусель фото (телефоны): фото плавно сменяют друг друга */
+(function(){
+  var mq=window.matchMedia('(max-width:560px)');
+  var pls=[].slice.call(document.querySelectorAll('.polaroids .polaroid'));
+  if(!pls.length) return;
+  var i=0, timer=null;
+  function show(n){ pls.forEach(function(p,k){ p.classList.toggle('car-active', k===n); }); }
+  function start(){ if(timer) return; i=0; show(0); timer=setInterval(function(){ i=(i+1)%pls.length; show(i); }, 2600); }
+  function stop(){ if(timer){ clearInterval(timer); timer=null; } pls.forEach(function(p){ p.classList.remove('car-active'); }); }
+  function apply(){ mq.matches ? start() : stop(); }
+  apply();
+  if(mq.addEventListener) mq.addEventListener('change', apply);
+})();
+
+/* RSVP -> ответ приходит в Telegram, гость остаётся на сайте */
+const TG_BOT='8920739648:AAHsMbgMFuJ5VekS8-GIpbRO-u2KK19smfE';
+const TG_CHAT='416401662';
 document.getElementById('rsvpForm').addEventListener('submit',function(e){
- e.preventDefault();const f=new FormData(this);
- const alc=[...this.querySelectorAll('input[name=alc]:checked')].map(i=>i.value).join(', ')||'—';
+ e.preventDefault();
+ const form=this, btn=form.querySelector('.submit'), f=new FormData(form);
+ const alc=[...form.querySelectorAll('input[name=alc]:checked')].map(i=>i.value).join(', ')||'—';
  const note=f.get('note')||'';
- const msg=encodeURIComponent(`Ответ на приглашение:\n👤 ${f.get('name')||'Гость'}\n✅ ${f.get('att')||'—'}\n🍾 ${alc}`+(note?`\n💬 ${note}`:''));
- window.open(`https://t.me/${TG}?text=${msg}`,'_blank');
- this.style.display='none';document.getElementById('success').style.display='block';
+ const text='🎉 Ответ на приглашение:\n👤 '+(f.get('name')||'Гость')+'\n✅ '+(f.get('att')||'—')+'\n🍾 '+alc+(note?'\n💬 '+note:'');
+ const er=document.getElementById('rsvpErr'); if(er) er.textContent='';
+ btn.disabled=true; btn.textContent='Отправляем…';
+ fetch('https://api.telegram.org/bot'+TG_BOT+'/sendMessage',{
+   method:'POST', headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({chat_id:TG_CHAT, text:text, disable_web_page_preview:true})
+ }).then(r=>r.json()).then(function(d){
+   if(d&&d.ok){ form.style.display='none'; document.getElementById('success').style.display='block'; }
+   else throw new Error('tg');
+ }).catch(function(){
+   btn.disabled=false; btn.textContent='Отправить ответ';
+   let e2=document.getElementById('rsvpErr');
+   if(!e2){ e2=document.createElement('p'); e2.id='rsvpErr';
+     e2.style.cssText='color:#ffd9d9;text-align:center;margin-top:1rem;font-size:.95rem';
+     form.appendChild(e2); }
+   e2.textContent='Не удалось отправить 😔 Проверьте интернет и попробуйте ещё раз. Если не выходит — напишите нам напрямую в Telegram @snegirchk';
+ });
 });
 </script>
 
