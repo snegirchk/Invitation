@@ -726,8 +726,10 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   if(mq.addEventListener) mq.addEventListener('change', apply);
 })();
 
-/* RSVP -> ответ приходит в Telegram, гость остаётся на сайте */
-const TG_BOT='8920739648:AAHsMbgMFuJ5VekS8-GIpbRO-u2KK19smfE';
+/* RSVP -> ответ приходит в Telegram через прокси (Cloudflare Worker).
+   Прокси нужен, т.к. api.telegram.org заблокирован у части РФ-провайдеров.
+   После деплоя worker.js вставьте ваш URL вместо плейсхолдера ниже: */
+const PROXY_URL='https://ЗАМЕНИТЕ_НА_URL_ВАШЕГО_WORKER.workers.dev';
 const TG_CHATS=['416401662','665167146'];
 document.getElementById('rsvpForm').addEventListener('submit',function(e){
  e.preventDefault();
@@ -738,9 +740,9 @@ document.getElementById('rsvpForm').addEventListener('submit',function(e){
  const er=document.getElementById('rsvpErr'); if(er) er.textContent='';
  btn.disabled=true; btn.textContent='Отправляем…';
  Promise.all(TG_CHATS.map(function(cid){
-   return fetch('https://api.telegram.org/bot'+TG_BOT+'/sendMessage',{
+   return fetch(PROXY_URL,{
      method:'POST', headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({chat_id:cid, text:text, disable_web_page_preview:true})
+     body:JSON.stringify({chat_id:cid, text:text})
    }).then(r=>r.json()).catch(function(){ return {ok:false}; });
  })).then(function(results){
    if(results.some(function(d){ return d&&d.ok; })){ form.style.display='none'; document.getElementById('success').style.display='block'; }
