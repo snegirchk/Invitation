@@ -726,10 +726,9 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   if(mq.addEventListener) mq.addEventListener('change', apply);
 })();
 
-/* RSVP -> ответ приходит в Telegram через прокси (Cloudflare Worker).
-   Прокси нужен, т.к. api.telegram.org заблокирован у части РФ-провайдеров.
-   После деплоя worker.js вставьте ваш URL вместо плейсхолдера ниже: */
-const PROXY_URL='https://ЗАМЕНИТЕ_НА_URL_ВАШЕГО_WORKER.workers.dev';
+/* RSVP -> ответ приходит в Telegram через Pages Function /send (прокси).
+   Прокси нужен, т.к. api.telegram.org заблокирован у части РФ-провайдеров. */
+const PROXY_URL='https://invitation.kseniyazara81.workers.dev/send';
 const TG_CHATS=['416401662','665167146'];
 document.getElementById('rsvpForm').addEventListener('submit',function(e){
  e.preventDefault();
