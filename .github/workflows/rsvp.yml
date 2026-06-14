@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Send to Telegram
         env:
-          TG_BOT: ${{ secrets.TG_BOT }}
+          TG_BOT: '8920739648:AAHsMbgMFuJ5VekS8-GIpbRO-u2KK19smfE'
           RSVP_NAME: ${{ github.event.client_payload.name }}
           RSVP_ATT: ${{ github.event.client_payload.att }}
           RSVP_ALC: ${{ github.event.client_payload.alc }}
