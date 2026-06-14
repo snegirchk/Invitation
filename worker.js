@@ -11,6 +11,7 @@
  *      и вставьте его в переменную PROXY_URL в index.html
  */
 
+const TG_BOT = '8920739648:AAHsMbgMFuJ5VekS8-GIpbRO-u2KK19smfE';
 const TG_API = 'https://api.telegram.org/bot';
 
 const CORS = {
@@ -20,7 +21,7 @@ const CORS = {
 };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS });
     }
@@ -39,15 +40,7 @@ export default {
       });
     }
 
-    const token = env.TG_BOT;
-    if (!token) {
-      return new Response(JSON.stringify({ ok: false, error: 'Bot token not configured' }), {
-        status: 500,
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const tgRes = await fetch(`${TG_API}${token}/sendMessage`, {
+    const tgRes = await fetch(`${TG_API}${TG_BOT}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
