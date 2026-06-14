@@ -1,0 +1,44 @@
+name: RSVP → Telegram
+on:
+  repository_dispatch:
+    types: [rsvp]
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send to Telegram
+        env:
+          TG_BOT: ${{ secrets.TG_BOT }}
+          RSVP_NAME: ${{ github.event.client_payload.name }}
+          RSVP_ATT: ${{ github.event.client_payload.att }}
+          RSVP_ALC: ${{ github.event.client_payload.alc }}
+          RSVP_NOTE: ${{ github.event.client_payload.note }}
+        run: |
+          python3 - <<'EOF'
+          import os, json, urllib.request
+
+          name = os.environ.get('RSVP_NAME', 'Гость')
+          att  = os.environ.get('RSVP_ATT',  '—')
+          alc  = os.environ.get('RSVP_ALC',  '—')
+          note = os.environ.get('RSVP_NOTE', '')
+
+          text = f"🎉 Ответ на приглашение:\n👤 {name}\n✅ {att}\n🍾 {alc}"
+          if note:
+              text += f"\n💬 {note}"
+
+          token = os.environ['TG_BOT']
+          for chat_id in ['416401662', '665167146']:
+              data = json.dumps({
+                  'chat_id': chat_id,
+                  'text': text,
+                  'disable_web_page_preview': True
+              }).encode()
+              req = urllib.request.Request(
+                  f'https://api.telegram.org/bot{token}/sendMessage',
+                  data=data,
+                  headers={'Content-Type': 'application/json'}
+              )
+              urllib.request.urlopen(req)
+          print('OK')
+          EOF

@@ -726,26 +726,27 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   if(mq.addEventListener) mq.addEventListener('change', apply);
 })();
 
-/* RSVP -> ответ приходит в Telegram через прокси (Cloudflare Worker).
-   Прокси нужен, т.к. api.telegram.org заблокирован у части РФ-провайдеров. */
-const PROXY_URL='https://invitation.kseniyazara81.workers.dev';
-const TG_CHATS=['416401662','665167146'];
+/* RSVP -> форма отправляет через GitHub API (доступен в России).
+   GitHub Actions получает событие и шлёт сообщение в Telegram.
+   GH_PAT — fine-grained токен с правом Actions:write для этого репо. */
+const GH_PAT='ВСТАВЬТЕ_ТОКЕН_ЗДЕСЬ';
+const GH_REPO='snegirchk/Invitation';
 document.getElementById('rsvpForm').addEventListener('submit',function(e){
  e.preventDefault();
  const form=this, btn=form.querySelector('.submit'), f=new FormData(form);
  const alc=[...form.querySelectorAll('input[name=alc]:checked')].map(i=>i.value).join(', ')||'—';
  const note=f.get('note')||'';
- const text='🎉 Ответ на приглашение:\n👤 '+(f.get('name')||'Гость')+'\n✅ '+(f.get('att')||'—')+'\n🍾 '+alc+(note?'\n💬 '+note:'');
  const er=document.getElementById('rsvpErr'); if(er) er.textContent='';
  btn.disabled=true; btn.textContent='Отправляем…';
- Promise.all(TG_CHATS.map(function(cid){
-   return fetch(PROXY_URL,{
-     method:'POST', headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({chat_id:cid, text:text})
-   }).then(r=>r.json()).catch(function(){ return {ok:false}; });
- })).then(function(results){
-   if(results.some(function(d){ return d&&d.ok; })){ form.style.display='none'; document.getElementById('success').style.display='block'; }
-   else throw new Error('tg');
+ fetch('https://api.github.com/repos/'+GH_REPO+'/dispatches',{
+   method:'POST',
+   headers:{'Authorization':'Bearer '+GH_PAT,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+   body:JSON.stringify({event_type:'rsvp',client_payload:{
+     name:f.get('name')||'Гость', att:f.get('att')||'—', alc:alc, note:note
+   }})
+ }).then(function(r){
+   if(r.status===204){ form.style.display='none'; document.getElementById('success').style.display='block'; }
+   else throw new Error('gh');
  }).catch(function(){
    btn.disabled=false; btn.textContent='Отправить ответ';
    let e2=document.getElementById('rsvpErr');
